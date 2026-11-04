@@ -18,6 +18,7 @@ import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
 import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.wifi.WifiInfo;
@@ -35,6 +36,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LayoutAnimationController;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.LinearLayout;
@@ -283,6 +285,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         adapter = new AppAdapter(this, this, COLUMNS);
         grid.setAdapter(adapter);
+        renderNuvioRow();
 
         // tvOS layout: 2-row dock sits at the bottom, giving maximum space for the wallpaper above.
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
@@ -388,6 +391,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         NowPlaying.addListener(npListener);
         NowPlaying.refresh(getApplicationContext());
+        renderNuvioRow();
+        handler.postDelayed(this::renderNuvioRow, 2200L);   // after the poll has seen Nuvio's session
         // The listener service can bind a moment after the activity resumes (e.g. right after an install),
         // so ask again shortly instead of showing an empty header for the rest of the session.
         handler.postDelayed(() -> NowPlaying.refresh(getApplicationContext()), 1500L);
@@ -769,8 +774,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The dock peek and the grid scroll both animate after focus lands, moving the tile under a ring
         // that was measured too early. Re-measure once they have settled.
         final View focusedCard = card;
+        retargetGlass(focusedCard);                 // move on the frame focus lands, not after
         handler.postDelayed(() -> {
-            if (focusedCard.hasFocus()) retargetGlass(focusedCard);
+            if (focusedCard.hasFocus()) retargetGlass(focusedCard);   // then correct once layout settles
         }, 380L);
     }
 
@@ -1311,6 +1317,105 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (driftOn != null) driftOn.setSelected(drift);
         if (driftOff != null) driftOff.setSelected(!drift);
 
+    }
+
+    /** Recently played in Nuvio, as tiles that deep-link straight back into the title. */
+    private void renderNuvioRow() {
+        HorizontalScrollView scroll = findViewById(R.id.nuvioScroll);
+        LinearLayout row = findViewById(R.id.nuvioRow);
+        if (scroll == null || row == null) return;
+        java.util.List<NuvioHistory.Item> items = NuvioHistory.load(this);
+        if (items.isEmpty()) {
+            scroll.setVisibility(View.GONE);
+            return;
+        }
+        scroll.setVisibility(View.VISIBLE);
+        row.removeAllViews();
+        for (NuvioHistory.Item it : items) row.addView(nuvioTile(it));
+    }
+
+    private View nuvioTile(NuvioHistory.Item it) {
+        int w = (int) (112 * density);
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMarginEnd((int) (10 * density));
+        tile.setLayoutParams(lp);
+        tile.setFocusable(true);
+        tile.setFocusableInTouchMode(false);
+        tile.setBackgroundResource(R.drawable.tile_bg);
+        int pad = (int) (4 * density);
+        tile.setPadding(pad, pad, pad, pad);
+        tile.setOnFocusChangeListener((v, focused) -> {
+            v.animate().scaleX(focused ? 1.06f : 1f).scaleY(focused ? 1.06f : 1f)
+                    .setDuration(90).start();          // focus must land on the frame it moves
+        });
+        tile.setOnClickListener(v -> launchNuvio(it));
+
+        ImageView poster = new ImageView(this);
+        poster.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (int) (156 * density)));
+        poster.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        poster.setContentDescription(it.title);
+        tile.addView(poster);
+
+        TextView label = new TextView(this);
+        label.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        label.setText(it.title);
+        label.setTextColor(0xE6FFFFFF);
+        label.setTextSize(10);
+        label.setSingleLine(true);
+        label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        label.setPadding(0, (int) (5 * density), 0, 0);
+        tile.addView(label);
+
+        String url = !it.poster.isEmpty() ? it.poster
+                : (it.id.isEmpty() ? "" : "https://images.metahub.space/poster/medium/" + it.id + "/img.jpg");
+        if (!url.isEmpty()) loadPoster(poster, url);
+        return tile;
+    }
+
+    private void loadPoster(ImageView target, String url) {
+        target.setTag(url);
+        new Thread(() -> {
+            android.graphics.Bitmap bmp = null;
+            try {
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                c.setConnectTimeout(4000);
+                c.setReadTimeout(5000);
+                bmp = android.graphics.BitmapFactory.decodeStream(c.getInputStream());
+                c.disconnect();
+            } catch (Exception ignored) {
+            }
+            final android.graphics.Bitmap done = bmp;
+            if (done == null) return;
+            runOnUiThread(() -> {
+                if (url.equals(target.getTag())) target.setImageBitmap(done);
+            });
+        }, "nuvio-poster").start();
+    }
+
+    private void launchNuvio(NuvioHistory.Item it) {
+        if (!it.id.isEmpty()) {
+            Intent deep = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("nuvio://detail/" + it.type + "/" + it.id));
+            deep.setPackage("com.nuvio.tv");
+            deep.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(deep);
+                return;
+            } catch (Exception ignored) {
+                // Nuvio may be absent or reject the route; fall through to its home screen.
+            }
+        }
+        Intent fallback = getPackageManager().getLeanbackLaunchIntentForPackage("com.nuvio.tv");
+        if (fallback != null) {
+            fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(fallback);
+        } else {
+            Toast.makeText(this, "Nuvio is not installed", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /** The two quick controls that survived on this hardware: screensaver and next wallpaper. */
