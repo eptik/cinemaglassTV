@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS glyph from react-ios-icons (MIT, (c) 2025 Walidoux), ported to a VectorDrawable. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="30dp"
+    android:height="30dp"
+    android:viewportWidth="30"
+    android:viewportHeight="30">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14.796 19.982c.308-.008.589-.123.817-.369l6.68-6.838c.193-.193.299-.44.299-.73 0-.58-.457-1.045-1.037-1.045-.282 0-.554.114-.756.316l-5.994 6.161-6.012-6.16A1.094 1.094 0 0 0 8.037 11C7.457 11 7 11.466 7 12.046a1 1 0 0 0 .299.73l6.688 6.837c.238.246.501.37.809.37Z" />
+</vector>

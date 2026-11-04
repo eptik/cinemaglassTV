@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.gathin.tvhome.NowPlayingPill xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/npRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/np_glass"
+    android:paddingStart="8dp"
+    android:paddingTop="7dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="7dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.gathin.tvhome.DiscArtView
+            android:id="@+id/npArt"
+            android:layout_width="46dp"
+            android:layout_height="46dp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="11dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/npTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="@font/outfit"
+                android:fontVariationSettings="'wght' 600"
+                android:letterSpacing="-0.01"
+                android:maxWidth="250dp"
+                android:singleLine="true"
+                android:textColor="#FFFFFFFF"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/npArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/outfit"
+                android:fontVariationSettings="'wght' 400"
+                android:letterSpacing="0.02"
+                android:maxWidth="360dp"
+                android:singleLine="true"
+                android:textColor="#B3FFFFFF"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+        <!-- Transport controls: revealed only while the island is focused. -->
+        <LinearLayout
+            android:id="@+id/npControls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/npPrev"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/np_ctrl_bg"
+                android:clickable="true"
+                android:contentDescription="@string/np_previous"
+                android:focusable="true"
+                android:padding="7dp"
+                android:src="@drawable/ic_prev" />
+
+            <ImageView
+                android:id="@+id/npToggle"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/np_ctrl_bg"
+                android:clickable="true"
+                android:contentDescription="@string/np_play_pause"
+                android:focusable="true"
+                android:padding="9dp"
+                android:src="@drawable/ic_pause" />
+
+            <ImageView
+                android:id="@+id/npNext"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/np_ctrl_bg"
+                android:clickable="true"
+                android:contentDescription="@string/np_next"
+                android:focusable="true"
+                android:padding="7dp"
+                android:src="@drawable/ic_next" />
+        </LinearLayout>
+    </LinearLayout>
+</com.gathin.tvhome.NowPlayingPill>

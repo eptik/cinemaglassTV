@@ -1,0 +1,39 @@
+.DS_Store
+__pycache__/
+
+# local working cache and SDK downloads
+work/adb-client/
+work/gradle-cache/
+work/homebrew-cache/
+work/homebrew-logs/
+work/tv-vibehack-source/launcher/work/
+work/*.zip
+
+# wallpaper and video libraries (large, third-party artwork)
+work/videos/
+work/shots/
+work/wall-db/
+work/wall-push/
+work/wall-final/
+work/4kwalls-final/
+work/hq/
+work/cinemeta/
+work/wpsample/
+
+# adb private key
+work/tv_adbkey
+work/tv_adbkey.pub
+
+# android build output
+**/build/
+**/.gradle/
+local.properties
+
+# device backups carry serials and MAC addresses
+backups/
+
+# built apk
+outputs/
+
+# working ledgers: internal paths and device IPs
+GATES*.md
