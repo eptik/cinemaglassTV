@@ -113,6 +113,18 @@ public final class NowPlaying {
                     (MediaSessionManager) context.getSystemService(Context.MEDIA_SESSION_SERVICE);
             if (manager == null) return;
             List<MediaController> sessions = manager.getActiveSessions(component);
+            for (MediaController c : sessions) {          // Nuvio history rides the same poll
+                if (!"com.nuvio.tv".equals(c.getPackageName())) continue;
+                MediaMetadata md = c.getMetadata();
+                if (md == null) continue;
+                android.media.MediaDescription desc = md.getDescription();
+                if (desc == null || desc.getTitle() == null) continue;
+                CharSequence sub = desc.getSubtitle();
+                // API 26 has no MEDIA_TYPE on MediaMetadata; Nuvio's subtitle is "S1:E2 – Episode" for shows.
+                boolean series = sub != null && sub.toString().matches("^S\\d+:E\\d+.*");
+                NuvioHistory.observe(context, desc.getTitle(), sub,
+                        desc.getIconUri() == null ? null : desc.getIconUri().toString(), series);
+            }
             MediaController best = null;
             // Stay on the session we already follow: switching controllers on every notification made the
             // island jump between apps' artwork.
