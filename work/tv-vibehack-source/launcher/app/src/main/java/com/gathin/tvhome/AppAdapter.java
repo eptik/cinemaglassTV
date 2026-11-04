@@ -101,8 +101,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     void reload() {
         PackageManager pm = ctx.getPackageManager();
-        Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        List<ResolveInfo> found = new ArrayList<>(pm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0));
+        // Phone-only apps declare CATEGORY_LAUNCHER and no leanback activity, so a leanback-only query
+        // hides them (Netflix, Vewd, most side-loaded APKs). Append them behind the leanback entries.
+        java.util.Set<String> already = new HashSet<>();
+        for (ResolveInfo ri : found) if (ri.activityInfo != null) already.add(ri.activityInfo.packageName);
+        for (ResolveInfo ri : pm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)) {
+            if (ri.activityInfo != null && !already.contains(ri.activityInfo.packageName)) found.add(ri);
+        }
         List<Entry> fresh = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
@@ -266,6 +274,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         try {
             ctx.startActivity(i);
         } catch (Exception ex) {
+            // A LAUNCHER-only app has no leanback activity behind the component we just built.
+            Intent fallback = ctx.getPackageManager().getLaunchIntentForPackage(e.pkg);
+            if (fallback != null) {
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    ctx.startActivity(fallback);
+                    return;
+                } catch (Exception ignored) {
+                }
+            }
             Toast.makeText(ctx, "Can't open " + e.label, Toast.LENGTH_SHORT).show();
         }
     }
